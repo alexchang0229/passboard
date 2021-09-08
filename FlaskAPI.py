@@ -11,7 +11,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__, static_folder='frontend/build', static_url_path='')
 CORS(app)
-app.config.from_object('config')
+app.config.from_object('configfile')
 db = SQLAlchemy(app)
 
 
