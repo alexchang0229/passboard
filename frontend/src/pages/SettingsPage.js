@@ -14,6 +14,21 @@ import MenuItem from '@material-ui/core/MenuItem';
 import FormControl from '@material-ui/core/FormControl';
 import { DateTimePicker, MuiPickersUtilsProvider } from "@material-ui/pickers";
 import DateFnsUtils from '@date-io/date-fns';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import '../assets/leaflet.css'
+import L from 'leaflet';
+import icon from '../assets/images/marker-icon.png'
+import iconShadow from '../assets/images/marker-shadow.png'
+
+let DefaultIcon = L.icon({
+    iconSize: [25, 41],
+    iconAnchor: [10, 41],
+    popupAnchor: [2, -40],
+    iconUrl: icon,
+    shadowUrl: iconShadow
+});
+L.Marker.prototype.options.icon = DefaultIcon;
+//https://stackoverflow.com/questions/49441600/react-leaflet-marker-files-not-found
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -85,7 +100,15 @@ export default function SettingsPage(props) {
         }));
         setSettings((prevSetting) => ({ ...prevSetting, satList: newSatList }))
     }
-    console.log(settings)
+
+    const GetCoord = () => {
+        const map = useMapEvents({
+            click: (e) => {
+                setSettings(prevState => ({ ...prevState, stationLong: e.latlng.lng, stationLat: e.latlng.lat }))
+            }
+        })
+        return <Marker position={{ lng: settings.stationLong, lat: settings.stationLat }}></Marker>
+    }
 
     return (
         <div style={{
@@ -154,12 +177,23 @@ export default function SettingsPage(props) {
                             <h4 style={{ paddingTop: 5 }}>Station</h4>
                             <Box pb={3} m={3}>
                                 <form onSubmit={handleSubmit} className={classes.root}>
+                                    <MapContainer
+                                        center={[settings.stationLat, settings.stationLong]}
+                                        zoom={5} scrollWheelZoom={false}
+                                        onClick={(evt) => console.log(evt)}
+                                        style={{ minHeight: 300 }}>
+                                        <GetCoord />
+                                        <TileLayer
+                                            attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                        />
+                                    </MapContainer>
                                     <div>
                                         <TextField
                                             id="Longitude-setting"
                                             label="Station longitude"
                                             type="number"
-                                            value={settings.stationLong}
+                                            value={settings.stationLong.toFixed(4)}
                                             InputLabelProps={{ shrink: true }}
                                             onChange={e => {
                                                 if (e.target.value >= -180 && e.target.value <= 180) {
@@ -168,13 +202,11 @@ export default function SettingsPage(props) {
                                             }}
                                             variant="filled"
                                         />
-                                    </div>
-                                    <div>
                                         <TextField
                                             id="Latitude-setting"
                                             label="Station latitude"
                                             type="number"
-                                            value={settings.stationLat}
+                                            value={settings.stationLat.toFixed(4)}
                                             InputLabelProps={{ shrink: true }}
                                             onChange={e => {
                                                 if (e.target.value >= -90 && e.target.value <= 90) {
@@ -243,13 +275,24 @@ export default function SettingsPage(props) {
                                         style={{ margin: 5, marginLeft: 0 }}>
                                         Save to database
                                     </Button>
-                                    <Button
-                                        type='submit'
-                                        variant="contained"
-                                        name='session'
-                                        style={{ margin: 5, marginRight: 0 }}>
-                                        Save to session
-                                    </Button>
+                                    <div>
+                                        <Button
+                                            type='submit'
+                                            variant="contained"
+                                            name='session'
+                                            style={{ margin: 5, marginRight: 0 }}>
+                                            Save to session
+                                        </Button>
+                                        <Button
+                                            variant="contained"
+                                            onClick={() => {
+                                                fetch('/api/popSession')
+                                                window.location.reload()
+                                            }}
+                                            style={{ margin: 5, marginRight: 0 }}>
+                                            Discard session
+                                        </Button>
+                                    </div>
                                 </form>
                             </Box>
                         </Paper>

@@ -11,7 +11,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__, static_folder='frontend/build', static_url_path='')
 CORS(app)
-app.config.from_object('configfile')
+app.config.from_object('config')
 db = SQLAlchemy(app)
 
 
@@ -39,7 +39,7 @@ def make_sat_from_id(idList):
             filename = './TLEs/tle-{}.txt'.format(SatID)
             satellite = load.tle_file(url, filename=filename)
             days = load.timescale().now() - satellite[0].epoch
-            if abs(days) > 5:  #if TLEs > 2 days old, get new ones
+            if abs(days) > 5:  # if TLEs > 2 days old, get new ones
                 satellite = load.tle_file(url, filename=filename, reload=True)
             satellites.append(satellite)
         except Exception as e:
@@ -109,7 +109,7 @@ def get_settings_from_file():
             id=session.get('user')['email']).first()
         settings = userdata.userSettings
     else:
-        #Default settings if custom settings file doesn't exist
+        # Default settings if custom settings file doesn't exist
         stationLong = -73.43
         stationLat = +45.51
         predHours = 24.0
@@ -157,18 +157,18 @@ def predict(settings):
     idList = [satList[ind]['NORADid'] for ind in satList]
     satellites, _ = make_sat_from_id(idList)
 
-    #Timescale range for predicting satellite passes
+    # Timescale range for predicting satellite passes
     ts = load.timescale()
     if predictionType == 'realtime':
         t0 = ts.utc(ts.now().utc_datetime() -
-                    timedelta(seconds=30))  #Time range starts 30s before now
+                    timedelta(seconds=30))  # Time range starts 30s before now
     else:
         t0 = ts.utc(customStartTime.replace(tzinfo=pytz.utc))
     t1 = ts.utc(t0.utc_datetime() + timedelta(hours=predHours))
     passes = {}
 
-    #This for loop goes through each satellite and finds passes over the
-    #station, passe information for all satellites are stored in the 'passes' array
+    # This for loop goes through each satellite and finds passes over the
+    # station, passe information for all satellites are stored in the 'passes' array
     passIndex = 0
 
     for i, satloop in enumerate(satList):
@@ -177,11 +177,11 @@ def predict(settings):
         # find event returns [0: AOS, 1: PEAK, 2: LOS, 0: AOS ... ]
         t_AOSLOS = np.delete(t_temp, np.where(events_temp == 1))
 
-        #If we call find_events() during a pass, it's going to return an array
-        #starting with event 1 or 2 (PEAK/LOS) instead of 0 (AOS). To find the
-        #AOS time in the past, this if statement goes back one day and finds the
-        #closest AOS time to the current time and puts that as the first element
-        #of the t_AOSLOS array
+        # If we call find_events() during a pass, it's going to return an array
+        # starting with event 1 or 2 (PEAK/LOS) instead of 0 (AOS). To find the
+        # AOS time in the past, this if statement goes back one day and finds the
+        # closest AOS time to the current time and puts that as the first element
+        # of the t_AOSLOS array
         if events_temp[0] != 0:
             t_temp1, events_temp1 = satellites[i][0].find_events(
                 stationLocation,
@@ -398,6 +398,13 @@ def save_settings_to_session():
     session['useSessionSettings'] = True
 
     return jsonify('Settings saved!')
+
+
+@app.route('/api/popSession')
+def popSession():
+    session['settings'] = False
+    session['useSessionSettings'] = False
+    return jsonify('Session poped!')
 
 
 @app.route('/api/session')
